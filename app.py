@@ -2,48 +2,89 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# Page Configuration
-st.set_page_config(page_title="CSV Data Doctor", page_icon="🩺")
-st.title("🩺 CSV Data Doctor")
-st.write("Upload a messy CSV file, and I will clean it and give you a quick summary!")
+# 1. Page Configuration (MUST BE FIRST)
+st.set_page_config(page_title="CSV Data Doctor", page_icon="🩺", layout="wide")
 
-# File Uploader
-uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+# 2. Custom CSS for a beautiful background and styling
+st.markdown("""
+    <style>
+    /* Gradient background */
+    .stApp {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+    /* Style the headers */
+    h1, h2, h3 {
+        color: #2c3e50;
+    }
+    /* Style the upload box */
+    .stFileUploader {
+        border: 2px dashed #4CAF50;
+        border-radius: 10px;
+        padding: 20px;
+        background-color: white;
+    }
+    /* Style the primary buttons */
+    .stButton>button {
+        background-color: #4CAF50;
+        color: white;
+        border-radius: 8px;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        background-color: #45a049;
+        transform: scale(1.05);
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 3. Hero Section
+st.title("🩺 CSV Data Doctor")
+st.markdown("### *Your automated data cleaning assistant*")
+st.write("Upload a messy CSV file, and I will clean it, profile it, and give it back to you in seconds. **No coding required.**")
+st.divider()
+
+# 4. File Uploader
+uploaded_file = st.file_uploader("📂 Drop your messy CSV file here", type=["csv"])
 
 if uploaded_file is not None:
-    # 1. Load Data
+    # 5. Load Data
     try:
         df = pd.read_csv(uploaded_file)
-        st.success("File uploaded successfully!")
+        st.success("✅ File uploaded successfully!")
     except Exception as e:
         st.error(f"Error reading file: {e}")
         st.stop()
 
-    # 2. Show Raw Data
-    st.subheader("1. Raw Data Preview (First 5 rows)")
-    st.dataframe(df.head())
-
-    # 3. Data Profiling (The "Summary")
-    st.subheader("2. Data Health Report")
-    
+    # 6. Data Health Dashboard (Using Columns for a clean look)
+    st.subheader("📊 Data Health Report")
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total Rows", len(df))
-    col2.metric("Total Columns", len(df.columns))
     
-    # Count missing values
+    # Calculate metrics
+    total_rows = len(df)
+    total_cols = len(df.columns)
     total_missing = df.isnull().sum().sum()
-    col3.metric("Missing Values", total_missing)
-
-    with st.expander("View Missing Values by Column"):
-        st.write(df.isnull().sum())
-
-    # 4. Cleaning Options
-    st.subheader("3. Cleaning Steps")
     
-    clean_duplicates = st.checkbox("Remove duplicate rows", value=True)
-    clean_missing = st.checkbox("Fill missing values (or drop rows)", value=True)
+    # Display metrics with nice styling
+    col1.metric("Total Rows", f"{total_rows:,}")
+    col2.metric("Total Columns", f"{total_cols:,}")
+    col3.metric("Missing Values", f"{total_missing:,}", delta=f"-{total_missing}" if total_missing > 0 else "0", delta_color="inverse")
+
+    with st.expander("🔍 View Raw Data Preview"):
+        st.dataframe(df.head(10), use_container_width=True)
+
+    st.divider()
+
+    # 7. Cleaning Section
+    st.subheader("🧹 Clean Your Data")
     
-    if st.button("Clean My Data!"):
+    col_opt1, col_opt2 = st.columns(2)
+    with col_opt1:
+        clean_duplicates = st.checkbox("✨ Remove duplicate rows", value=True)
+    with col_opt2:
+        clean_missing = st.checkbox("🩹 Fill missing values (Numbers=0, Text=Unknown)", value=True)
+    
+    if st.button("🚀 Clean My Data Now!"):
         cleaned_df = df.copy()
         
         # Execute Cleaning
@@ -51,20 +92,20 @@ if uploaded_file is not None:
             cleaned_df = cleaned_df.drop_duplicates()
         
         if clean_missing:
-            # For this free tool, we fill numbers with 0 and text with "Unknown"
             numeric_cols = cleaned_df.select_dtypes(include=[np.number]).columns
             text_cols = cleaned_df.select_dtypes(exclude=[np.number]).columns
-            
             cleaned_df[numeric_cols] = cleaned_df[numeric_cols].fillna(0)
             cleaned_df[text_cols] = cleaned_df[text_cols].fillna("Unknown")
 
-        st.success("Data cleaned successfully!")
+        # MAGIC HAPPENS HERE: CELEBRATION!
+        st.balloons()
+        st.success("🎉 Data cleaned successfully! Your dataset is now healthy.")
         
-        # 5. Show Cleaned Data
-        st.subheader("4. Cleaned Data Preview")
-        st.dataframe(cleaned_df.head())
+        # Show Cleaned Data
+        st.subheader("✨ Cleaned Data Preview")
+        st.dataframe(cleaned_df.head(10), use_container_width=True)
         
-        # 6. Download Button
+        # Download Button
         csv = cleaned_df.to_csv(index=False).encode('utf-8')
         st.download_button(
             label="📥 Download Cleaned CSV",
@@ -72,3 +113,7 @@ if uploaded_file is not None:
             file_name='cleaned_data.csv',
             mime='text/csv',
         )
+
+# 8. Footer
+st.markdown("---")
+st.caption("Built with ❤️ using Python, Pandas, and Streamlit by Ampurira Nicodemus.")
