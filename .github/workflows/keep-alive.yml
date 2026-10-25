@@ -5,10 +5,45 @@ on:
   workflow_dispatch: # Allows you to run it manually
 
 jobs:
-  ping:
+  wake-up:
     runs-on: ubuntu-latest
     steps:
-      - name: Install streamlit-wakeup
-        run: pip install streamlit-wakeup
-      - name: Wake up the app
-        run: streamlit-wakeup https://csv-doctor-for-csv-files.streamlit.app/
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Playwright and dependencies
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Run wake-up script
+        run: |
+          python -c "
+          import asyncio
+          from playwright.async_api import async_playwright
+          
+          async def wake_up():
+              async with async_playwright() as p:
+                  browser = await p.chromium.launch()
+                  page = await browser.new_page()
+                  await page.goto('https://csv-doctor-for-csv-files.streamlit.app/')
+                  await page.wait_for_timeout(5000)
+                  try:
+                      # Look for the wake up button and click it
+                      button = page.locator('text=\"Yes, get this app back up!\"')
+                      if await button.is_visible():
+                          await button.click()
+                          print('Clicked wake up button successfully')
+                      else:
+                          print('App is already awake')
+                  except Exception as e:
+                      print(f'Error: {e}')
+                  await browser.close()
+          
+          asyncio.run(wake_up())
+          "
